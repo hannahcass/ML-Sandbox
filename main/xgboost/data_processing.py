@@ -45,3 +45,14 @@ class DataSplit:
         x_train, x_test, y_train, y_test = train_test_split(
             x, y, test_size=self.test_size, random_state=self.random_state)
         return x_train, x_test, y_train, y_test
+
+
+class DataManipulation:
+    def __init__(self, data: pd.DataFrame) -> None:
+        self.data = data
+
+    def filter_rows_by_index(self, stock_index) -> pd.DataFrame:
+        self.data = self.data[self.data['Index'] == stock_index]
+        return self.data    
+    
+    

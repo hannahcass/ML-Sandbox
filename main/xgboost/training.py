@@ -5,7 +5,15 @@ import numpy as np
 from models import LSTMRegression
 
 
-def train_lstm(model, train_loader, loss, optimizer, epochs):
+
+
+
+
+
+
+
+
+def train_lstm(model, train_loader, test_loader, loss, optimizer, epochs):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model.to(device)
 
@@ -15,6 +23,8 @@ def train_lstm(model, train_loader, loss, optimizer, epochs):
         model.train()
         for batch_x, batch_y in train_loader:
             optimizer.zero_grad()
+            batch_x = batch_x.to(device)
+            batch_y = batch_y.to(device)
             output = model(batch_x)
             l = loss(output, batch_y)
             l.backward()
@@ -23,7 +33,23 @@ def train_lstm(model, train_loader, loss, optimizer, epochs):
         train_loss /= len(train_loader.dataset)
         print("Epoch: {} Training Loss: {:.6f}".format(epoch+1, train_loss))
 
+        model.eval()
+        for batch_x, batch_y in test_loader:
+            batch_x = batch_x.to(device)
+            batch_y = batch_y.to(device)
+            with torch.no_grad():
+                output = model(batch_x)
+                l = loss(output, batch_y)
+                test_loss += l.item() * batch_x.size(0)
+        test_loss /= len(test_loader.dataset)
+        print("Test loss: {:.6f}".format(test_loss))
+
     return train_loss, test_loss
+
+
+
+
+
 
 
 def train_vgg16(model, train_loader, loss, optimizer, epochs, batch_size):

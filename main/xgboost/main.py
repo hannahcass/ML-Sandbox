@@ -1,21 +1,29 @@
 import pandas as pd
 import torch
 import torch.nn as nn
-import torch.optim as optim
+from torch.optim import Adam
 from torch.utils.data import TensorDataset, DataLoader
+import optuna
 
-from data_processing import DataPreProcessing, DataSplit
+from data_processing import DataPreProcessing, DataSplit, DataManipulation
 from models import rf, lr, knn, dt, xg, LSTMRegression
 
 from training import train_vgg16, train_lstm
 
 
+# data = pd.read_csv(
+#    "D:\projects_2023\main\datasets\mobile_price_prediction_kaggle\Cellphone.csv")
+
 data = pd.read_csv(
-    "D:\projects_2023\main\datasets\mobile_price_prediction_kaggle\Cellphone.csv")
+    "D:\projects_2023\main\datasets\stock_exchange_data\indexProcessed.csv")
 
 data_preprocessed = DataPreProcessing(data).main(threshold=0.4)
+
+data_GDAXI = DataManipulation(data_preprocessed).filter_rows_by_index("GDAXI")
+
+data_GDAXI = data_GDAXI.drop(["Index", "Date"], axis=1)
 x_train, x_test, y_train, y_test = DataSplit(
-    data_preprocessed, "Price", 42, 0.2).main()
+    data_GDAXI, "CloseUSD", 42, 0.2).main()
 
 
 # results = []
@@ -31,27 +39,12 @@ x_train, x_test, y_train, y_test = DataSplit(
 
 
 # LSTM
-epochs = 10
-batch_size = 32
-lr = 0.001
-
-input_size = 13
-hidden_size = 64
-output_size = 1
-num_layers = 1
-
-
-model = LSTMRegression(input_size, hidden_size,
-                       num_layers, output_size)
-
-loss = nn.MSELoss()
-optimizer = optim.Adam(model.parameters(), lr=lr)
-
-
 x_train = x_train.to_numpy()
 y_train = y_train.to_numpy()
 x_test = x_test.to_numpy()
 y_test = y_test.to_numpy()
+batch_size = 64
+
 
 train_data = []
 for i in range(len(x_train)):
@@ -62,12 +55,53 @@ train_loader = torch.utils.data.DataLoader(
     train_data, shuffle=True, batch_size=batch_size)
 
 
-train_loss, test_loss = train_lstm(
-    model, train_loader, loss, optimizer, epochs)
+test_data = []
+for i in range(len(x_test)):
+    test_data.append((torch.tensor(x_test[i]).float(), torch.tensor(
+        [y_test[i]]).float()))
+
+test_loader = torch.utils.data.DataLoader(
+    test_data, shuffle=True, batch_size=batch_size)
 
 
-print("Training loss:", train_loss)
-print("Test loss:", test_loss)
+
+def objective(trial):
+    hidden_size = trial.suggest_int('hidden_size', 118, 128, log=True)
+    num_layers = trial.suggest_int('num_layers', 4, 6)
+    lr = trial.suggest_loguniform('learning_rate', 1e-3, 1e-1)
+    epochs = trial.suggest_int('epochs', 10, 100)
+
+    input_size = 6
+    #hidden_size = 64
+    output_size = 1
+    #num_layers = 2
+
+
+
+
+
+
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+
+    model = LSTMRegression(input_size, hidden_size,
+                       num_layers, output_size).to(device)
+
+    loss = nn.MSELoss()
+    optimizer = Adam(model.parameters(), lr=float(lr))
+
+
+    train_loss, test_loss = train_lstm(
+        model, train_loader, test_loader, loss, optimizer, epochs)
+    
+    return train_loss, test_loss
+
+
+study = optuna.create_study(direction='minimize')
+study.optimize(objective, n_trials=100)
+
+print(f"Best value: {study.best_value:.4f}")
+print(f"Best params: {study.best_params}")
 
 
 # for param in vgg16.features.parameters():

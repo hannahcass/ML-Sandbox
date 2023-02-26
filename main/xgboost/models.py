@@ -31,8 +31,8 @@ class LSTMRegression(nn.Module):
         self.fc = nn.Linear(hidden_size, output_size)
 
     def forward(self, x):
-        h0 = torch.zeros(self.num_layers, 1, self.hidden_size)
-        c0 = torch.zeros(self.num_layers, 1, self.hidden_size)
+        h0 = torch.zeros(self.num_layers, 1, self.hidden_size, device=x.device)
+        c0 = torch.zeros(self.num_layers, 1, self.hidden_size, device=x.device)
         out, _ = self.lstm(x.unsqueeze(0), (h0, c0))
         out = self.fc(out[:, -1, :])
         return out.squeeze(1)
