@@ -19,9 +19,10 @@ data = pd.read_csv(
 
 data_preprocessed = DataPreProcessing(data).main(threshold=0.4)
 
-data_GDAXI = DataManipulation(data_preprocessed).filter_rows_by_index("GDAXI")
 
-data_GDAXI = data_GDAXI.drop(["Index", "Date"], axis=1)
+data_GDAXI = DataManipulation(data).main("GDAXI")
+print(data_GDAXI)
+
 x_train, x_test, y_train, y_test = DataSplit(
     data_GDAXI, "CloseUSD", 42, 0.2).main()
 
@@ -70,6 +71,10 @@ def objective(trial):
     num_layers = trial.suggest_int('num_layers', 4, 6)
     lr = trial.suggest_loguniform('learning_rate', 1e-3, 1e-1)
     epochs = trial.suggest_int('epochs', 10, 100)
+    activation = trial.suggest_categorical('activation', ['leaky_relu'])
+    batch_norm = trial.suggest_categorical('use_batch_norm', [True, False])
+    dropout_rate = trial.suggest_uniform('dropout_rate', 0.0, 1.0)
+    weight_decay = trial.suggest_loguniform('weight_decay', 1e-7, 1e-1)
 
     input_size = 6
     #hidden_size = 64
@@ -87,8 +92,9 @@ def objective(trial):
     model = LSTMRegression(input_size, hidden_size,
                        num_layers, output_size).to(device)
 
+
     loss = nn.MSELoss()
-    optimizer = Adam(model.parameters(), lr=float(lr))
+    optimizer = Adam(model.parameters(), lr=float(lr), weight_decay=weight_decay)
 
 
     train_loss, test_loss = train_lstm(

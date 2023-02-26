@@ -51,8 +51,22 @@ class DataManipulation:
     def __init__(self, data: pd.DataFrame) -> None:
         self.data = data
 
+    def main(self, stock_index: str) -> pd.DataFrame:
+        self.data = self.datetime_to_date_index()
+        self.data = self.filter_rows_by_index(stock_index)
+        self.data = self.feature_columns()
+        return self.data
+
+    def datetime_to_date_index(self) -> pd.DataFrame:
+        self.data['Date'] = pd.to_datetime(self.data['Date'])
+        self.data = self.data.set_index('Date')
+        return self.data
+
     def filter_rows_by_index(self, stock_index) -> pd.DataFrame:
         self.data = self.data[self.data['Index'] == stock_index]
         return self.data    
     
+    def feature_columns(self) -> list:
+        self.data = self.data.drop(["Index", ], axis=1)
+        return self.data.columns
     

@@ -28,13 +28,20 @@ class LSTMRegression(nn.Module):
         self.num_layers = num_layers
         self.lstm = nn.LSTM(input_size, hidden_size,
                             num_layers, batch_first=True)
-        self.fc = nn.Linear(hidden_size, output_size)
+        self.fc1 = nn.Linear(hidden_size, 64)
+        self.fc2 = nn.Linear(64, output_size)
+        self.activation = nn.LeakyReLU()
+        #self.activation = nn.ELU()
 
     def forward(self, x):
         h0 = torch.zeros(self.num_layers, 1, self.hidden_size, device=x.device)
         c0 = torch.zeros(self.num_layers, 1, self.hidden_size, device=x.device)
+        #out, _ = self.lstm(x.unsqueeze(0), (h0, c0))
+        #out = self.fc(out[:, -1, :])
         out, _ = self.lstm(x.unsqueeze(0), (h0, c0))
-        out = self.fc(out[:, -1, :])
+        out = self.fc1(out[:, -1, :])
+        out = self.activation(out)
+        out = self.fc2(out)
         return out.squeeze(1)
 
 
