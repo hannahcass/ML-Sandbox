@@ -1,0 +1,24 @@
+name: ml-sandbox
+channels:
+  - pytorch
+  - nvidia
+  - conda-forge
+  - defaults
+dependencies:
+  - cudatoolkit=12.1
+  - cuda-nvcc=12.1
+  - gxx_linux-64=11.2.0
+  - python=3.11
+  - pip
+  - pytorch=2.2.0
+  - cmake
+  - pip:
+      - pre-commit
+      - ipykernel
+      - dacite
+      - omegaconf
+      - torchmetrics
+      - tqdm
+      - pytest
+      - pytest-xdist
+      - numpy
